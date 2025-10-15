@@ -15,7 +15,7 @@
     background: #4b6bff;
     color: white;
     text-align: center;
-    padding: 25px 10px;
+    padding: 15px 10px 5px 10px;
     box-shadow: 0 3px 10px rgba(0,0,0,0.1);
     position: sticky;
     top: 0;
@@ -23,12 +23,13 @@
   }
   header h1 {
     font-size: 32px;
-    margin: 10px 0 0 0;
+    margin: 5px 0 10px 0;
     letter-spacing: 1px;
   }
   .search-container {
     margin-bottom: 10px;
     position: relative;
+    text-align: center;
   }
   .search-container input {
     width: 90%;
@@ -48,12 +49,14 @@
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     display: none;
     z-index: 1001;
+    left: 50%;
+    transform: translateX(-50%);
   }
   .search-results div {
     padding: 8px 12px;
     cursor: pointer;
     border-bottom: 1px solid #eee;
-    color: black; /* search results in black */
+    color: black;
   }
   .search-results div:hover {
     background: #eef2ff;
@@ -177,20 +180,22 @@ const familyData = [
       {
         name: "भतुाजी",
         gender: "male",
-        father: "गागाजी",
+        spouse: "मधमुा",
+        village: "व्याला",
         children: [
-          { name: "पुत्र 1", gender: "male", father: "भतुाजी" },
-          { name: "पुत्र 2", gender: "male", father: "भतुाजी" },
-          { name: "कन्या 1", gender: "female", father: "भतुाजी" }
+          { name: "पुत्र 1", gender: "male", spouse: "पत्नी 1", village: "गांव 1" },
+          { name: "पुत्र 2", gender: "male", spouse: "पत्नी 2", village: "गांव 2" },
+          { name: "कन्या 1", gender: "female", spouse: "", village: "गांव 3" }
         ]
       },
       {
         name: "वलेाजी",
         gender: "male",
-        father: "गागाजी",
+        spouse: "रगंमुा",
+        village: "रानीवाड़ा",
         children: [
-          { name: "पुत्र 1", gender: "male", father: "वलेाजी" },
-          { name: "कन्या 1", gender: "female", father: "वलेाजी" }
+          { name: "पुत्र 1", gender: "male", spouse: "पत्नी 1", village: "गांव 1" },
+          { name: "कन्या 1", gender: "female", spouse: "", village: "गांव 2" }
         ]
       }
     ]
@@ -208,7 +213,7 @@ function buildTree(data) {
     profile.innerHTML = `
       ${person.gender === "female" ? femaleSVG : maleSVG}
       <span class="person-name">${person.name}</span>
-      <span class="details">${person.spouse ? " — " + person.spouse : ""}${person.village ? " (" + person.village + ")" : ""}</span>
+      <span class="details">${person.spouse ? " — " + person.spouse : ""}${person.spouse && person.village ? " (" + person.village + ")" : ""}</span>
     `;
     li.appendChild(profile);
 
@@ -228,11 +233,15 @@ function buildTree(data) {
 
 document.getElementById("treeContainer").appendChild(buildTree(familyData));
 
-// Flatten for search
+// Flatten for search (spouse + village)
 const allMembers = [];
 function flattenFamily(data){
   data.forEach(p => {
-    allMembers.push({ name: p.name, father: p.father || "" });
+    allMembers.push({
+      name: p.name,
+      spouse: p.spouse || "",
+      village: p.village || ""
+    });
     if(p.children) flattenFamily(p.children);
   });
 }
@@ -252,7 +261,7 @@ searchInput.addEventListener("input", () => {
     searchResults.style.display = "block";
     matches.forEach(m => {
       const div = document.createElement("div");
-      div.textContent = `${m.name}${m.father ? " — पिता: " + m.father : ""}`;
+      div.textContent = `${m.name}${m.spouse ? " — " + m.spouse : ""}${m.spouse && m.village ? " (" + m.village + ")" : ""}`;
       div.addEventListener("click", () => {
         searchResults.style.display = "none";
         searchInput.value = "";
@@ -269,13 +278,13 @@ function scrollToPerson(name){
   const memberCards = document.querySelectorAll(".profile");
   memberCards.forEach(card => {
     if(card.querySelector(".person-name").textContent === name){
-      // Expand parents
+      // Expand all ancestors
       let current = card.parentElement;
       while(current && current.tagName==="LI"){
         current.classList.add("expanded");
         current = current.parentElement.closest("li");
       }
-      // Highlight card
+      // Highlight
       card.classList.add("highlight");
       setTimeout(()=> card.classList.remove("highlight"), 3000);
       // Scroll
