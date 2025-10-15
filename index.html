@@ -11,44 +11,75 @@
     margin: 0;
     padding: 0;
   }
+
   header {
     background: #4b6bff;
     color: white;
     text-align: center;
-    padding: 20px 10px;
+    padding: 25px 10px;
     box-shadow: 0 3px 10px rgba(0,0,0,0.1);
   }
+
   header h1 {
-    font-size: clamp(22px, 4vw, 34px);
+    font-size: 30px;
     margin: 0;
     letter-spacing: 1px;
   }
-  main {
-    max-width: 1100px;
+
+  .search-bar {
     margin: 20px auto;
+    max-width: 600px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 15px;
+  }
+
+  .search-bar input {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 16px;
+    border: 1px solid #cbd5ff;
+    border-radius: 8px;
+    outline: none;
+    transition: all 0.3s ease;
+  }
+
+  .search-bar input:focus {
+    border-color: #4b6bff;
+    box-shadow: 0 0 4px rgba(75,107,255,0.3);
+  }
+
+  main {
+    max-width: 900px;
+    margin: 20px auto 40px;
     background: white;
-    padding: clamp(15px, 3vw, 30px);
+    padding: 20px 20px;
     border-radius: 16px;
     box-shadow: 0 6px 18px rgba(0,0,0,0.1);
   }
+
   .tree ul {
     list-style-type: none;
+    position: relative;
     padding-left: 20px;
     margin: 0;
   }
+
   .tree li {
     position: relative;
     margin: 10px 0;
     padding: 12px 15px;
     background: #f9fbff;
     border: 1px solid #dde3ff;
-    border-radius: 10px;
+    border-radius: 12px;
     transition: all 0.3s ease;
-    overflow-wrap: anywhere;
   }
+
   .tree li:hover {
     background: #eef2ff;
   }
+
   .tree li::before {
     content: "";
     position: absolute;
@@ -60,83 +91,81 @@
     height: 20px;
     border-radius: 0 0 0 8px;
   }
+
   .tree li:first-child::before {
     border-top: none;
   }
-  .profile {
-    cursor: pointer;
+
+  .person {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
+    cursor: pointer;
   }
-  .profile svg {
-    width: 38px;
-    height: 38px;
+
+  .person svg {
+    width: 40px;
+    height: 40px;
+    margin-right: 10px;
     flex-shrink: 0;
   }
-  .profile .person-name {
+
+  .info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .name {
     font-weight: bold;
     color: #2f45ff;
-    font-size: clamp(16px, 3vw, 20px);
+    font-size: 17px;
   }
-  .profile .details {
-    font-size: clamp(13px, 2.5vw, 15px);
+
+  .spouse {
     color: #444;
-    margin-left: 5px;
+    font-size: 15px;
   }
+
   .children {
     margin-top: 10px;
-    margin-left: 20px;
+    margin-left: 25px;
     border-left: 2px dashed #cfd5ff;
     padding-left: 10px;
     display: none;
   }
+
   .expanded > .children {
     display: block;
     animation: fadeIn 0.4s ease;
   }
+
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-5px); }
     to { opacity: 1; transform: translateY(0); }
   }
+
+  .highlight {
+    background: #fff3b0 !important;
+    border-color: #ffd95e;
+  }
+
   footer {
     text-align: center;
     color: #666;
-    margin: 30px 0 15px;
+    margin: 30px 0;
     font-size: 14px;
   }
 
-  /* 📱 Responsive Improvements */
-  @media (max-width: 768px) {
-    main {
-      margin: 10px;
-      padding: 15px;
-    }
-    .tree ul {
-      padding-left: 10px;
-    }
-    .tree li {
-      padding: 10px;
-      font-size: 14px;
-    }
-    .profile {
-      flex-direction: row;
-      align-items: flex-start;
-    }
-  }
-
-  @media (max-width: 480px) {
+  /* Responsive */
+  @media (max-width: 600px) {
     header h1 {
-      font-size: 22px;
-      line-height: 1.3;
+      font-size: 24px;
     }
-    .profile svg {
+    .person svg {
       width: 30px;
       height: 30px;
     }
-    .profile .person-name {
-      font-size: 16px;
+    .name {
+      font-size: 15px;
     }
   }
 </style>
@@ -145,6 +174,10 @@
   <header>
     <h1>गगाणी परिवार</h1>
   </header>
+
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="नाम से खोजें... (उदा: भतुाजी)">
+  </div>
 
   <main>
     <div class="tree" id="treeContainer"></div>
@@ -157,36 +190,32 @@
 const familyData = [
   {
     name: "गागाजी",
-    spouse: "",
-    village: "व्याला",
     gender: "male",
+    spouse: "",
     children: [
       {
         name: "भतुाजी",
-        spouse: "मधमुा",
-        village: "व्याला",
         gender: "male",
+        spouse: "मधमुा (व्याला)",
         children: [
-          { name: "पुत्र 1", spouse: "पत्नी 1", village: "गांव 1", gender: "male", children: [] },
-          { name: "पुत्र 2", spouse: "पत्नी 2", village: "गांव 2", gender: "male", children: [] },
-          { name: "कन्या 1", spouse: "", village: "गांव 3", gender: "female", children: [] }
+          { name: "रीता", gender: "female", spouse: "", children: [] },
+          { name: "पुत्र 1", gender: "male", spouse: "पत्नी 1", children: [] }
         ]
       },
       {
         name: "वलेाजी",
-        spouse: "रगंमुा",
-        village: "रानीवाड़ा",
         gender: "male",
+        spouse: "रगंमुा (रानीवाड़ा)",
         children: [
-          { name: "पुत्र 1", spouse: "पत्नी 1", village: "गांव 1", gender: "male", children: [] },
-          { name: "कन्या 1", spouse: "", village: "गांव 2", gender: "female", children: [] }
+          { name: "पुत्र 1", gender: "male", spouse: "पत्नी 1", children: [] },
+          { name: "रीमा", gender: "female", spouse: "", children: [] }
         ]
       }
     ]
   }
 ];
 
-// 👦 Male SVG
+// 👨 Male SVG
 const maleSVG = `
 <svg viewBox="0 0 84 84" xmlns="http://www.w3.org/2000/svg">
 <circle cx="42" cy="42" r="42" fill="white"/>
@@ -194,7 +223,7 @@ const maleSVG = `
 <path d="M42.001 51C55.6205 51 67.3106 59.2516 72.3506 71.0273C64.7042 79.0206 53.9331 84 41.998 84C30.0647 84 19.2946 79.0225 11.6484 71.0312C16.6874 59.2532 28.3798 51 42.001 51Z" fill="#3854FF"/>
 </svg>`;
 
-// 👧 Female SVG
+// 👩 Female SVG
 const femaleSVG = `
 <svg viewBox="0 0 84 84" xmlns="http://www.w3.org/2000/svg">
 <circle cx="42" cy="42" r="42" fill="white"/>
@@ -202,43 +231,42 @@ const femaleSVG = `
 <path d="M42.001 51C55.6205 51 67.3106 59.2516 72.3506 71.0273C64.7042 79.0206 53.9331 84 41.998 84C30.0647 84 19.2946 79.0225 11.6484 71.0312C16.6874 59.2532 28.3798 51 42.001 51Z" fill="#FF006A"/>
 </svg>`;
 
-// 🧩 Build Recursive Tree
+// 🔁 Build Family Tree
 function buildTree(data) {
   const ul = document.createElement("ul");
+
   data.forEach(person => {
     const li = document.createElement("li");
+    const personDiv = document.createElement("div");
+    personDiv.className = "person";
 
-    const profile = document.createElement("div");
-    profile.className = "profile";
+    const svg = document.createElement("div");
+    svg.innerHTML = person.gender === "female" ? femaleSVG : maleSVG;
 
-    // Choose SVG based on gender
-    const icon = document.createElement("div");
-    icon.innerHTML = person.gender === "female" ? femaleSVG : maleSVG;
+    const info = document.createElement("div");
+    info.className = "info";
 
-    const nameSpan = document.createElement("span");
-    nameSpan.className = "person-name";
-    nameSpan.textContent = person.name;
+    const name = document.createElement("span");
+    name.className = "name";
+    name.textContent = person.name;
 
-    const detailsSpan = document.createElement("span");
-    detailsSpan.className = "details";
-    detailsSpan.textContent =
-      (person.spouse ? ` — ${person.spouse}` : "") +
-      (person.village ? ` (${person.village})` : "");
+    const spouse = document.createElement("span");
+    spouse.className = "spouse";
+    if (person.spouse) spouse.textContent = "जीवनसाथी: " + person.spouse;
 
-    profile.appendChild(icon);
-    profile.appendChild(nameSpan);
-    profile.appendChild(detailsSpan);
+    info.appendChild(name);
+    info.appendChild(spouse);
+    personDiv.appendChild(svg);
+    personDiv.appendChild(info);
+    li.appendChild(personDiv);
 
-    li.appendChild(profile);
-
-    // Add children recursively
     if (person.children && person.children.length > 0) {
       const childContainer = document.createElement("div");
       childContainer.className = "children";
       childContainer.appendChild(buildTree(person.children));
       li.appendChild(childContainer);
 
-      profile.addEventListener("click", () => {
+      personDiv.addEventListener("click", () => {
         li.classList.toggle("expanded");
       });
     }
@@ -249,6 +277,28 @@ function buildTree(data) {
 }
 
 document.getElementById("treeContainer").appendChild(buildTree(familyData));
+
+// 🔍 Search Function
+document.getElementById("searchInput").addEventListener("input", function () {
+  const query = this.value.trim().toLowerCase();
+  const allNames = document.querySelectorAll(".name");
+
+  allNames.forEach(nameEl => {
+    const li = nameEl.closest("li");
+    li.classList.remove("highlight");
+
+    if (nameEl.textContent.toLowerCase().includes(query) && query !== "") {
+      li.classList.add("highlight");
+
+      // Expand all parents up the tree
+      let parent = li.parentElement;
+      while (parent && parent.classList.contains("children")) {
+        parent.parentElement.classList.add("expanded");
+        parent = parent.parentElement.parentElement;
+      }
+    }
+  });
+});
 </script>
 </body>
 </html>
