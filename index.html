@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>गगाणी परिवार वंशावली</title>
+<style>
+  body {
+    font-family: "Noto Sans Devanagari", "Mangal", sans-serif;
+    background: linear-gradient(120deg, #f0f4ff, #fdfcff);
+    margin: 0;
+    padding: 0;
+  }
+  header {
+    background: #4b6bff;
+    color: white;
+    text-align: center;
+    padding: 20px 10px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  }
+  header h1 {
+    font-size: clamp(22px, 4vw, 34px);
+    margin: 0;
+    letter-spacing: 1px;
+  }
+  main {
+    max-width: 1100px;
+    margin: 20px auto;
+    background: white;
+    padding: clamp(15px, 3vw, 30px);
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+  }
+  .tree ul {
+    list-style-type: none;
+    padding-left: 20px;
+    margin: 0;
+  }
+  .tree li {
+    position: relative;
+    margin: 10px 0;
+    padding: 12px 15px;
+    background: #f9fbff;
+    border: 1px solid #dde3ff;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    overflow-wrap: anywhere;
+  }
+  .tree li:hover {
+    background: #eef2ff;
+  }
+  .tree li::before {
+    content: "";
+    position: absolute;
+    top: -10px;
+    left: -20px;
+    border-left: 2px solid #cbd5ff;
+    border-bottom: 2px solid #cbd5ff;
+    width: 20px;
+    height: 20px;
+    border-radius: 0 0 0 8px;
+  }
+  .tree li:first-child::before {
+    border-top: none;
+  }
+  .profile {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .profile svg {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+  }
+  .profile .person-name {
+    font-weight: bold;
+    color: #2f45ff;
+    font-size: clamp(16px, 3vw, 20px);
+  }
+  .profile .details {
+    font-size: clamp(13px, 2.5vw, 15px);
+    color: #444;
+    margin-left: 5px;
+  }
+  .children {
+    margin-top: 10px;
+    margin-left: 20px;
+    border-left: 2px dashed #cfd5ff;
+    padding-left: 10px;
+    display: none;
+  }
+  .expanded > .children {
+    display: block;
+    animation: fadeIn 0.4s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  footer {
+    text-align: center;
+    color: #666;
+    margin: 30px 0 15px;
+    font-size: 14px;
+  }
+
+  /* 📱 Responsive Improvements */
+  @media (max-width: 768px) {
+    main {
+      margin: 10px;
+      padding: 15px;
+    }
+    .tree ul {
+      padding-left: 10px;
+    }
+    .tree li {
+      padding: 10px;
+      font-size: 14px;
+    }
+    .profile {
+      flex-direction: row;
+      align-items: flex-start;
+    }
+  }
+
+  @media (max-width: 480px) {
+    header h1 {
+      font-size: 22px;
+      line-height: 1.3;
+    }
+    .profile svg {
+      width: 30px;
+      height: 30px;
+    }
+    .profile .person-name {
+      font-size: 16px;
+    }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>गगाणी परिवार</h1>
+  </header>
+
+  <main>
+    <div class="tree" id="treeContainer"></div>
+  </main>
+
+  <footer>© गगाणी परिवार वंशावली | Designed with ❤️ by Anil</footer>
+
+<script>
+// 🧬 Family Data
+const familyData = [
+  {
+    name: "गागाजी",
+    spouse: "",
+    village: "व्याला",
+    gender: "male",
+    children: [
+      {
+        name: "भतुाजी",
+        spouse: "मधमुा",
+        village: "व्याला",
+        gender: "male",
+        children: [
+          { name: "पुत्र 1", spouse: "पत्नी 1", village: "गांव 1", gender: "male", children: [] },
+          { name: "पुत्र 2", spouse: "पत्नी 2", village: "गांव 2", gender: "male", children: [] },
+          { name: "कन्या 1", spouse: "", village: "गांव 3", gender: "female", children: [] }
+        ]
+      },
+      {
+        name: "वलेाजी",
+        spouse: "रगंमुा",
+        village: "रानीवाड़ा",
+        gender: "male",
+        children: [
+          { name: "पुत्र 1", spouse: "पत्नी 1", village: "गांव 1", gender: "male", children: [] },
+          { name: "कन्या 1", spouse: "", village: "गांव 2", gender: "female", children: [] }
+        ]
+      }
+    ]
+  }
+];
+
+// 👦 Male SVG
+const maleSVG = `
+<svg viewBox="0 0 84 84" xmlns="http://www.w3.org/2000/svg">
+<circle cx="42" cy="42" r="42" fill="white"/>
+<circle cx="42" cy="32" r="16" fill="#3854FF"/>
+<path d="M42.001 51C55.6205 51 67.3106 59.2516 72.3506 71.0273C64.7042 79.0206 53.9331 84 41.998 84C30.0647 84 19.2946 79.0225 11.6484 71.0312C16.6874 59.2532 28.3798 51 42.001 51Z" fill="#3854FF"/>
+</svg>`;
+
+// 👧 Female SVG
+const femaleSVG = `
+<svg viewBox="0 0 84 84" xmlns="http://www.w3.org/2000/svg">
+<circle cx="42" cy="42" r="42" fill="white"/>
+<circle cx="42" cy="32" r="16" fill="#FF006A"/>
+<path d="M42.001 51C55.6205 51 67.3106 59.2516 72.3506 71.0273C64.7042 79.0206 53.9331 84 41.998 84C30.0647 84 19.2946 79.0225 11.6484 71.0312C16.6874 59.2532 28.3798 51 42.001 51Z" fill="#FF006A"/>
+</svg>`;
+
+// 🧩 Build Recursive Tree
+function buildTree(data) {
+  const ul = document.createElement("ul");
+  data.forEach(person => {
+    const li = document.createElement("li");
+
+    const profile = document.createElement("div");
+    profile.className = "profile";
+
+    // Choose SVG based on gender
+    const icon = document.createElement("div");
+    icon.innerHTML = person.gender === "female" ? femaleSVG : maleSVG;
+
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "person-name";
+    nameSpan.textContent = person.name;
+
+    const detailsSpan = document.createElement("span");
+    detailsSpan.className = "details";
+    detailsSpan.textContent =
+      (person.spouse ? ` — ${person.spouse}` : "") +
+      (person.village ? ` (${person.village})` : "");
+
+    profile.appendChild(icon);
+    profile.appendChild(nameSpan);
+    profile.appendChild(detailsSpan);
+
+    li.appendChild(profile);
+
+    // Add children recursively
+    if (person.children && person.children.length > 0) {
+      const childContainer = document.createElement("div");
+      childContainer.className = "children";
+      childContainer.appendChild(buildTree(person.children));
+      li.appendChild(childContainer);
+
+      profile.addEventListener("click", () => {
+        li.classList.toggle("expanded");
+      });
+    }
+
+    ul.appendChild(li);
+  });
+  return ul;
+}
+
+document.getElementById("treeContainer").appendChild(buildTree(familyData));
+</script>
+</body>
+</html>
