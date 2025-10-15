@@ -115,7 +115,6 @@
   }
   .profile .person-name {
     font-weight: bold;
-    color: #2f45ff;
     font-size: 18px;
   }
   .profile .details {
@@ -235,22 +234,22 @@ function buildTree(data) {
   const ul = document.createElement("ul");
   data.forEach(person => {
     const li = document.createElement("li");
-
     const profile = document.createElement("div");
     profile.className = "profile";
     
-    // Show correct SVG for gender
     const svg = person.gender === "female" ? femaleSVG : maleSVG;
+    const nameColor = person.gender === "female" ? "#FF006A" : "#2f45ff";
 
-    // Show name + spouse + village if spouse exists
+    // Spouse details with color
     let detailsText = "";
     if(person.spouse){
-      detailsText = ` — ${person.spouse}${person.village ? " (" + person.village + ")" : ""}`;
+      const spouseColor = person.gender === "female" ? "#2f45ff" : "#FF006A";
+      detailsText = ` — <span style="color:${spouseColor}">${person.spouse}</span>${person.village ? " (" + person.village + ")" : ""}`;
     }
 
     profile.innerHTML = `
       ${svg}
-      <span class="person-name">${person.name}</span>
+      <span class="person-name" style="color:${nameColor}">${person.name}</span>
       <span class="details">${detailsText}</span>
     `;
 
@@ -261,7 +260,6 @@ function buildTree(data) {
       childContainer.className = "children";
       childContainer.appendChild(buildTree(person.children));
       li.appendChild(childContainer);
-
       profile.addEventListener("click", () => li.classList.toggle("expanded"));
     }
 
@@ -272,15 +270,11 @@ function buildTree(data) {
 
 document.getElementById("treeContainer").appendChild(buildTree(familyData));
 
-// Flatten for search (spouse + village)
+// Flatten for search
 const allMembers = [];
 function flattenFamily(data){
   data.forEach(p => {
-    allMembers.push({
-      name: p.name,
-      spouse: p.spouse || "",
-      village: p.village || ""
-    });
+    allMembers.push({ name: p.name, spouse: p.spouse || "", village: p.village || "" });
     if(p.children) flattenFamily(p.children);
   });
 }
@@ -317,16 +311,13 @@ function scrollToPerson(name){
   const memberCards = document.querySelectorAll(".profile");
   memberCards.forEach(card => {
     if(card.querySelector(".person-name").textContent === name){
-      // Expand all ancestors
       let current = card.parentElement;
       while(current && current.tagName==="LI"){
         current.classList.add("expanded");
         current = current.parentElement.closest("li");
       }
-      // Highlight
       card.classList.add("highlight");
       setTimeout(()=> card.classList.remove("highlight"), 3000);
-      // Scroll
       card.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   });
