@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <title>Best Times to Post Heatmap</title>
+
+  <!-- jsPDF for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
   <style>
     :root {
       --low-color:  #ffe5ef;
@@ -16,51 +20,47 @@
       padding: 32px;
     }
 
-    .wrapper {
+    .page {
       max-width: 1200px;
       margin: 0 auto;
-      background: radial-gradient(circle at top left, #ffffff, #fdf2f8);
-      padding: 28px 32px 26px;
-      border-radius: 24px;
-      box-shadow: 0 18px 50px rgba(15, 23, 42, 0.18);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
     }
 
-    .header-row {
+    .card {
+      background: radial-gradient(circle at top left, #ffffff, #fdf2f8);
+      padding: 20px 26px 22px;
+      border-radius: 24px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+    }
+
+    .card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 16px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
 
     h1 {
       margin: 0;
-      font-size: 28px;
+      font-size: 24px;
       font-weight: 700;
       color: #111827;
     }
 
-    .logo-wrap svg {
-      width: 150px;
-      height: auto;
-      display: block;
-    }
-
-    .color-block {
-      margin-top: 8px;
-      font-size: 11px;
+    h2 {
+      margin: 0;
+      font-size: 18px;
       font-weight: 600;
-      color: #4b5563;
-      text-align: right;
+      color: #111827;
     }
 
-    .color-block input {
-      width: 42px;
-      height: 24px;
-      cursor: pointer;
-      border: none;
-      background: none;
-      vertical-align: middle;
+    .sub {
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: #6b7280;
     }
 
     .controls {
@@ -86,12 +86,52 @@
       font-size: 12px;
     }
 
-    .buttons-row {
+    .color-row {
       display: flex;
-      gap: 8px;
       flex-wrap: wrap;
+      gap: 10px 16px;
+      align-items: center;
       margin-top: 4px;
       margin-bottom: 8px;
+      font-size: 12px;
+    }
+
+    .color-block {
+      font-size: 12px;
+      font-weight: 600;
+      color: #4b5563;
+    }
+
+    .color-block input[type="color"] {
+      width: 42px;
+      height: 24px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      vertical-align: middle;
+    }
+
+    .social-select {
+      display: inline-flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .social-select select {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      font-size: 12px;
+      background: #ffffff;
+    }
+
+    .buttons-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 8px;
     }
 
     button {
@@ -109,10 +149,27 @@
       box-shadow: 0 8px 20px rgba(255, 0, 80, 0.35);
     }
 
-    #downloadSvgBtn {
+    .download-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+    }
+
+    .download-group select {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      font-size: 12px;
+      background: #ffffff;
+    }
+
+    #downloadBtn {
       background: #e5e7eb;
       color: #111827;
     }
+
+    /* Result card */
 
     .heatmap-wrap {
       margin-top: 12px;
@@ -124,6 +181,8 @@
       border-spacing: 1px;
       table-layout: fixed;
       font-size: 11px;
+      background: #ffffff;
+      border-radius: 12px;
     }
 
     th.day {
@@ -132,6 +191,7 @@
       font-weight: 600;
       font-size: 12px;
       color: #4b5563;
+      background: #ffffff;
     }
 
     th.hour {
@@ -139,6 +199,7 @@
       padding-bottom: 8px;
       color: #4b5563;
       white-space: nowrap;
+      background: #ffffff;
     }
 
     .cell {
@@ -244,73 +305,104 @@
   </style>
 </head>
 <body>
-<div class="wrapper">
+<div class="page">
 
-  <div class="header-row">
-    <div>
-      <h1>Best Times to Post on</h1>
+  <!-- CARD 1: Fill details -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2>Fill Details</h2>
+        <p class="sub">Add best posting hours for each day and choose a brand color.</p>
+      </div>
     </div>
 
-    <div style="text-align:right">
-      <div class="logo-wrap">
-        <!-- SocialPilot logo SVG -->
-        <svg viewBox="0 0 161 48" xmlns="http://www.w3.org/2000/svg">
-          <path d="M28.0262 7.86035C29.7514 7.92775 31.657 7.96924 33.499 8.51105C37.7752 9.77355 39.9069 12.2026 40.0593 16.7419C40.2829 23.3915 38.6187 29.6029 34.6551 34.9484C30.6152 40.3925 25.0789 41.6213 19.1715 38.3886C13.4395 35.2491 9.46829 30.4947 8.12421 23.8711C7.18158 19.2047 8.5968 15.2435 12.3978 12.3504C15.5535 9.94724 19.2325 8.8688 23.0691 8.25439C24.7101 8.00257 26.3667 7.87089 28.0262 7.86035Z" fill="#0066FF"/>
-          <path d="M15.3179 21.0412L31.713 15.2303C32.4384 14.9732 33.1383 15.67 32.88 16.3922L27.0435 32.7154C26.8204 33.3393 25.9357 33.3433 25.7069 32.7214L23.0943 25.6188L30.2774 17.8216L22.4452 24.9729L15.3119 22.3719C14.6873 22.1442 14.6913 21.2633 15.3179 21.0412Z" fill="white"/>
-          <!-- wordmark -->
-          <g fill="#1B1C1E">
-          <path d="M56.7408 20.692C56.6715 20.0467 56.3792 19.5443 55.864 19.1847C55.3537 18.8252 54.6898 18.6454 53.8724 18.6454C53.2977 18.6454 52.8047 18.7316 52.3936 18.904C51.9824 19.0764 51.6678 19.3103 51.4498 19.6059C51.2318 19.9014 51.1203 20.2388 51.1154 20.6181C51.1154 20.9334 51.1872 21.2067 51.3309 21.4382C51.4795 21.6698 51.6801 21.8668 51.9328 22.0293C52.1855 22.187 52.4654 22.3199 52.7725 22.4283C53.0797 22.5367 53.3893 22.6278 53.7015 22.7017L55.1283 23.0563C55.7029 23.1893 56.2553 23.3691 56.7854 23.5957C57.3205 23.8223 57.7986 24.108 58.2197 24.4528C58.6457 24.7976 58.9826 25.2138 59.2303 25.7014C59.478 26.1891 59.6019 26.7605 59.6019 27.4156C59.6019 28.3022 59.374 29.0829 58.9182 29.7578C58.4624 30.4277 57.8035 30.9522 56.9415 31.3315C56.0844 31.7059 55.0465 31.893 53.8278 31.893C52.6437 31.893 51.6157 31.7108 50.7438 31.3463C49.8768 30.9818 49.1981 30.4498 48.7076 29.7504C48.2221 29.0509 47.9596 28.1988 47.9199 27.1939H50.6323C50.672 27.721 50.8355 28.1594 51.1228 28.5091C51.4101 28.8588 51.7842 29.1199 52.2449 29.2923C52.7106 29.4647 53.2308 29.5509 53.8055 29.5509C54.405 29.5509 54.9301 29.4622 55.3809 29.2849C55.8367 29.1026 56.1934 28.8514 56.451 28.5313C56.7086 28.2062 56.8399 27.8269 56.8449 27.3934C56.8399 26.9994 56.7235 26.6743 56.4956 26.4181C56.2677 26.1571 55.9482 25.9403 55.537 25.7679C55.1307 25.5906 54.6551 25.433 54.1102 25.2951L52.3787 24.8518C51.1253 24.5316 50.1344 24.0464 49.4062 23.3962C48.6829 22.7411 48.3212 21.8717 48.3212 20.7881C48.3212 19.8965 48.564 19.1158 49.0495 18.4459C49.5399 17.776 50.2063 17.2563 51.0485 16.8869C51.8907 16.5125 52.8444 16.3254 53.9095 16.3254C54.9895 16.3254 55.9358 16.5125 56.7483 16.8869C57.5657 17.2563 58.2073 17.7711 58.673 18.4311C59.1387 19.0862 59.379 19.8399 59.3938 20.692H56.7408Z" />
-          <!-- (rest of paths omitted for brevity – paste full SVG if you want exact wordmark) -->
-          </g>
-        </svg>
-      </div>
+    <div class="controls" id="dayInputs"></div>
+
+    <div class="color-row">
       <div class="color-block">
         Base Heat Color:
         <input type="color" id="basePicker" value="#ff0050">
       </div>
+
+      <div class="social-select">
+        <span>or Select Social:</span>
+        <select id="socialSelect">
+          <option value="">Custom</option>
+          <option value="#1877F2">Facebook</option>
+          <option value="#FF2C5D">Instagram</option>
+          <option value="#000000">Twitter / X</option>
+          <option value="#0A66C2">LinkedIn</option>
+          <option value="#FF0000">YouTube</option>
+          <option value="#FE2C55">TikTok</option>
+          <option value="#BD081C">Pinterest</option>
+          <option value="#FFFC00">Snapchat</option>
+          <option value="#FF4500">Reddit</option>
+          <option value="#35465C">Tumblr</option>
+          <option value="#000000">Threads</option>
+          <option value="#1185FE">Bluesky</option>
+          <option value="#4285F4">Google</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="buttons-row">
+      <button id="generateBtn">Generate Heatmap</button>
     </div>
   </div>
 
-  <div class="controls" id="dayInputs"></div>
+  <!-- CARD 2: Result -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h1>Best Times to Post on</h1>
+      </div>
 
-  <div class="buttons-row">
-    <button id="generateBtn">Generate Heatmap</button>
-    <button id="downloadSvgBtn">Download SVG</button>
-  </div>
-
-  <div class="heatmap-wrap">
-    <table id="heatmap"></table>
-  </div>
-
-  <div class="axis-row">
-    <div>AM</div>
-    <div>PM</div>
-  </div>
-
-  <div class="legend">
-    <span>Low</span>
-    <div class="legend-strip"></div>
-    <span>High</span>
-  </div>
-
-  <div class="days-section">
-    <div class="days-block">
-      <div class="days-block-title">Best Days:</div>
-      <div id="bestDaysPills" class="pills-row"></div>
+      <div class="download-group">
+        <span>Download graph:</span>
+        <select id="downloadFormat">
+          <option value="png">PNG</option>
+          <option value="pdf">PDF</option>
+          <option value="svg">SVG</option>
+          <option value="copy">Copy for Figma (SVG)</option>
+        </select>
+        <button id="downloadBtn">Go</button>
+      </div>
     </div>
-    <div class="days-block">
-      <div class="days-block-title">Worst Days:</div>
-      <div id="worstDaysPills" class="pills-row"></div>
-    </div>
-  </div>
 
-  <div class="meta-card">
-    <p id="noteText" contenteditable="true">
-      <strong>Note:</strong> All timings are timezone-agnostic, so you can use them as they are, without needing to adjust for your timezone.
-    </p>
-    <p id="sourceText" contenteditable="true">
-      <strong>Source:</strong> Our data team analyzed 7 million Instagram posts from 50,000 accounts connected to SocialPilot, studying engagement patterns across hours and days to identify the best times to post.
-    </p>
+    <div class="heatmap-wrap">
+      <table id="heatmap"></table>
+    </div>
+
+    <div class="axis-row">
+      <div>AM</div>
+      <div>PM</div>
+    </div>
+
+    <div class="legend">
+      <span>Low</span>
+      <div class="legend-strip"></div>
+      <span>High</span>
+    </div>
+
+    <div class="days-section">
+      <div>
+        <div class="days-block-title">Best Days:</div>
+        <div id="bestDaysPills" class="pills-row"></div>
+      </div>
+      <div>
+        <div class="days-block-title">Worst Days:</div>
+        <div id="worstDaysPills" class="pills-row"></div>
+      </div>
+    </div>
+
+    <div class="meta-card">
+      <p id="noteText" contenteditable="true">
+        <strong>Note:</strong> All timings are timezone-agnostic, so you can use them as they are, without needing to adjust for your timezone.
+      </p>
+      <p id="sourceText" contenteditable="true">
+        <strong>Source:</strong> Our data team analyzed 7 million Instagram posts from 50,000 accounts, studying engagement patterns across hours and days to identify the best times to post.
+      </p>
+    </div>
   </div>
 
 </div>
@@ -327,11 +419,14 @@ for (let i = 0; i < 24; i++) {
 
 const heatmapTable       = document.getElementById("heatmap");
 const basePicker         = document.getElementById("basePicker");
+const socialSelect       = document.getElementById("socialSelect");
 const dayInputsContainer = document.getElementById("dayInputs");
 const bestDaysPills      = document.getElementById("bestDaysPills");
 const worstDaysPills     = document.getElementById("worstDaysPills");
 
-// Build day inputs
+let palette = { low:"#ffe5ef", high:"#ff0050" };
+
+/* -------- Build inputs -------- */
 days.forEach(day => {
   const div = document.createElement("div");
   div.innerHTML = `
@@ -341,12 +436,14 @@ days.forEach(day => {
   dayInputsContainer.appendChild(div);
 });
 
-// Build heatmap table
+/* -------- Build grid -------- */
 function buildTable() {
   heatmapTable.innerHTML = "";
   const header = document.createElement("tr");
   header.innerHTML = "<th></th>" +
-    hours.map(h => `<th class="hour">${h.label}<span style="font-size:9px;display:block;color:#9ca3af;">${h.suffix}</span></th>`).join("");
+    hours.map(h =>
+      `<th class="hour">${h.label}<span style="font-size:9px;display:block;color:#9ca3af;">${h.suffix}</span></th>`
+    ).join("");
   heatmapTable.appendChild(header);
 
   days.forEach(day => {
@@ -364,7 +461,7 @@ function buildTable() {
 }
 buildTable();
 
-// Color helpers
+/* -------- Color helpers -------- */
 function hexToRgb(hex) {
   hex = hex.replace("#","");
   if (hex.length === 3) hex = hex.split("").map(c => c + c).join("");
@@ -382,29 +479,36 @@ function mix(a,b,w) {
   return rgbToHex(r,g,b2);
 }
 
-let palette = { low:"#ffe5ef", high:"#ff0050" };
-
 function updatePalette() {
   const base = basePicker.value;
-  palette.low  = mix(base, "#ffffff", 0.80);
-  palette.high = mix(base, "#ff0000", 0.30);
+  // darkest tiles EXACTLY base color; light ones are tinted version
+  palette.high = base;
+  palette.low  = mix(base, "#ffffff", 0.85);
   document.querySelector(".legend-strip")
     .style.background = `linear-gradient(to right, ${palette.low}, ${palette.high})`;
 }
 basePicker.addEventListener("input", updatePalette);
 updatePalette();
 
-// distance fade
+/* social color selection */
+socialSelect.addEventListener("change", () => {
+  const val = socialSelect.value;
+  if (val) {
+    basePicker.value = val;
+    updatePalette();
+  }
+});
+
+/* distance fade */
 function weight(d) {
   const max = 4;
   return d > max ? 0 : 1 - d/max;
 }
 
-// Update best/worst day pills
+/* pills */
 function updateDayPills(dayScores) {
   bestDaysPills.innerHTML = "";
   worstDaysPills.innerHTML = "";
-
   const scores = days.map(d => dayScores[d] || 0);
   const maxScore = Math.max(...scores);
   const minScore = Math.min(...scores);
@@ -425,11 +529,9 @@ function updateDayPills(dayScores) {
     worstDaysPills.appendChild(worstPill);
   });
 }
+updateDayPills(Object.fromEntries(days.map(d=>[d,0])));
 
-// initial neutral pills
-updateDayPills(Object.fromEntries(days.map(d => [d,0])));
-
-// Generate heatmap
+/* generate heatmap */
 document.getElementById("generateBtn").onclick = () => {
   const scores = {};
   const dayScores = {};
@@ -438,7 +540,6 @@ document.getElementById("generateBtn").onclick = () => {
   days.forEach(day => {
     const val = document.getElementById(`input-${day}`).value;
     if (!val.trim()) return;
-
     const times = val.split(",")
       .map(x => parseInt(x.trim(),10))
       .filter(x => !isNaN(x) && x>=0 && x<=23);
@@ -468,17 +569,18 @@ document.getElementById("generateBtn").onclick = () => {
   updateDayPills(dayScores);
 };
 
-// SVG download of heatmap only
-document.getElementById("downloadSvgBtn").onclick = () => {
-  const cellWidth  = 22;
-  const cellHeight = 18;
-  const leftMargin = 55;
-  const topMargin  = 35;
-  const colCount   = 24;
-  const rowCount   = days.length;
+/* -------- GRAPH SVG ONLY (no notes/pills in export) -------- */
+function buildGraphSvg() {
+  const rowCount = days.length;
+  const colCount = hours.length;
 
-  const svgWidth  = leftMargin + colCount * cellWidth + 40;
-  const svgHeight = topMargin  + rowCount * cellHeight + 60;
+  const svgWidth  = 1100;
+  const svgHeight = 420;
+
+  const cellW = 26;
+  const cellH = 24;
+  const leftMargin = 110;
+  const topMargin  = 120;
 
   const svgNS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(svgNS, "svg");
@@ -487,77 +589,203 @@ document.getElementById("downloadSvgBtn").onclick = () => {
   svg.setAttribute("height", svgHeight);
   svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
 
-  const bg = document.createElementNS(svgNS, "rect");
-  bg.setAttribute("x", 0);
-  bg.setAttribute("y", 0);
+  const defs = document.createElementNS(svgNS, "defs");
+  const heatGrad = document.createElementNS(svgNS,"linearGradient");
+  heatGrad.setAttribute("id","heatGrad");
+  heatGrad.setAttribute("x1","0%"); heatGrad.setAttribute("x2","0%");
+  heatGrad.setAttribute("y1","0%"); heatGrad.setAttribute("y2","100%");
+  const hg1 = document.createElementNS(svgNS,"stop");
+  hg1.setAttribute("offset","0%"); hg1.setAttribute("stop-color", palette.low);
+  const hg2 = document.createElementNS(svgNS,"stop");
+  hg2.setAttribute("offset","100%"); hg2.setAttribute("stop-color", palette.high);
+  heatGrad.appendChild(hg1); heatGrad.appendChild(hg2);
+  defs.appendChild(heatGrad);
+  svg.appendChild(defs);
+
+  // white background
+  const bg = document.createElementNS(svgNS,"rect");
+  bg.setAttribute("x","0");
+  bg.setAttribute("y","0");
   bg.setAttribute("width", svgWidth);
   bg.setAttribute("height", svgHeight);
-  bg.setAttribute("fill", "#ffffff");
+  bg.setAttribute("fill","#ffffff");
   svg.appendChild(bg);
 
   // title
-  const title = document.createElementNS(svgNS, "text");
-  title.setAttribute("x", leftMargin);
-  title.setAttribute("y", 18);
-  title.setAttribute("font-size", "13");
-  title.setAttribute("font-weight", "700");
-  title.setAttribute("fill", "#111827");
+  const title = document.createElementNS(svgNS,"text");
+  title.setAttribute("x","60");
+  title.setAttribute("y","70");
+  title.setAttribute("font-size","26");
+  title.setAttribute("font-weight","700");
+  title.setAttribute("fill","#111827");
   title.textContent = "Best Times to Post";
   svg.appendChild(title);
 
   // hour labels
   hours.forEach((h, idx) => {
-    const t = document.createElementNS(svgNS, "text");
-    t.setAttribute("x", leftMargin + idx * cellWidth + cellWidth/2);
-    t.setAttribute("y", topMargin - 10);
-    t.setAttribute("text-anchor", "middle");
-    t.setAttribute("font-size", "7");
-    t.setAttribute("fill", "#4b5563");
-    t.textContent = `${h.label}${h.suffix}`;
+    const t = document.createElementNS(svgNS,"text");
+    t.setAttribute("x", leftMargin + idx*cellW + cellW/2);
+    t.setAttribute("y", topMargin - 14);
+    t.setAttribute("text-anchor","middle");
+    t.setAttribute("font-size","11");
+    t.setAttribute("fill","#4b5563");
+    t.textContent = h.label;
     svg.appendChild(t);
+
+    const s = document.createElementNS(svgNS,"text");
+    s.setAttribute("x", leftMargin + idx*cellW + cellW/2);
+    s.setAttribute("y", topMargin - 2);
+    s.setAttribute("text-anchor","middle");
+    s.setAttribute("font-size","9");
+    s.setAttribute("fill","#9ca3af");
+    s.textContent = h.suffix;
+    svg.appendChild(s);
   });
 
-  // days + cells
+  // days & cells (with white border)
   days.forEach((day, r) => {
-    const td = document.createElementNS(svgNS, "text");
-    td.setAttribute("x", leftMargin - 8);
-    td.setAttribute("y", topMargin + r*cellHeight + cellHeight*0.7);
-    td.setAttribute("text-anchor", "end");
-    td.setAttribute("font-size", "8.5");
-    td.setAttribute("font-weight", "600");
-    td.setAttribute("fill", "#374151");
+    const td = document.createElementNS(svgNS,"text");
+    td.setAttribute("x", leftMargin - 12);
+    td.setAttribute("y", topMargin + r*cellH + cellH*0.7);
+    td.setAttribute("text-anchor","end");
+    td.setAttribute("font-size","13");
+    td.setAttribute("font-weight","600");
+    td.setAttribute("fill","#4b5563");
     td.textContent = day;
     svg.appendChild(td);
 
-    for (let c = 0; c < 24; c++) {
+    for (let c = 0; c < colCount; c++) {
       const domCell = document.querySelector(`.cell[data-day="${day}"][data-hour="${c}"]`);
       let fill = palette.low;
       if (domCell) {
         const style = getComputedStyle(domCell);
-        fill = style.backgroundColor || fill;
+        fill = style.backgroundColor || fill; // rgb(...) accepted in SVG
       }
-      const rect = document.createElementNS(svgNS, "rect");
-      rect.setAttribute("x", leftMargin + c * cellWidth);
-      rect.setAttribute("y", topMargin + r * cellHeight);
-      rect.setAttribute("width", cellWidth);
-      rect.setAttribute("height", cellHeight);
+      const rect = document.createElementNS(svgNS,"rect");
+      rect.setAttribute("x", leftMargin + c*cellW);
+      rect.setAttribute("y", topMargin + r*cellH);
+      rect.setAttribute("width", cellW);
+      rect.setAttribute("height", cellH);
       rect.setAttribute("fill", fill);
+      rect.setAttribute("stroke", "#ffffff");
+      rect.setAttribute("stroke-width", "2");
       svg.appendChild(rect);
     }
   });
 
+  // vertical legend
+  const legendX = leftMargin + colCount*cellW + 30;
+  const legendY = topMargin;
+  const legendH = rowCount*cellH * 0.8;
+
+  const legTextLow = document.createElementNS(svgNS,"text");
+  legTextLow.setAttribute("x", legendX+30);
+  legTextLow.setAttribute("y", legendY+5);
+  legTextLow.setAttribute("font-size","11");
+  legTextLow.setAttribute("fill","#6b7280");
+  legTextLow.textContent = "Low";
+  svg.appendChild(legTextLow);
+
+  const legRect = document.createElementNS(svgNS,"rect");
+  legRect.setAttribute("x", legendX+30);
+  legRect.setAttribute("y", legendY+15);
+  legRect.setAttribute("width","10");
+  legRect.setAttribute("height", legendH);
+  legRect.setAttribute("fill","url(#heatGrad)");
+  svg.appendChild(legRect);
+
+  const legTextHigh = document.createElementNS(svgNS,"text");
+  legTextHigh.setAttribute("x", legendX+30);
+  legTextHigh.setAttribute("y", legendY+15+legendH+14);
+  legTextHigh.setAttribute("font-size","11");
+  legTextHigh.setAttribute("fill","#6b7280");
+  legTextHigh.textContent = "High";
+  svg.appendChild(legTextHigh);
+
   const serializer = new XMLSerializer();
   const svgString = serializer.serializeToString(svg);
-  const blob = new Blob([svgString], {type:"image/svg+xml;charset=utf-8"});
-  const url = URL.createObjectURL(blob);
+  return { svgString, svgWidth, svgHeight };
+}
 
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "best-time-heatmap.svg";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+/* SVG -> PNG data URL */
+function svgToPngDataUrl(svgString, width, height) {
+  return new Promise((resolve, reject) => {
+    const svgBlob = new Blob([svgString], {type:"image/svg+xml;charset=utf-8"});
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0,0,width,height);
+      ctx.drawImage(img,0,0,width,height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+/* Download handler (graph only) */
+document.getElementById("downloadBtn").onclick = async () => {
+  const format = document.getElementById("downloadFormat").value;
+  const { svgString, svgWidth, svgHeight } = buildGraphSvg();
+
+  if (format === "svg") {
+    const blob = new Blob([svgString], {type:"image/svg+xml;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "best-times-graph.svg";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } else if (format === "copy") {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(svgString);
+        alert("SVG copied – paste directly into Figma.");
+      } catch (e) {
+        alert("Could not copy to clipboard.");
+      }
+    } else {
+      alert("Clipboard API not supported in this browser.");
+    }
+  } else if (format === "png") {
+    try {
+      const dataUrl = await svgToPngDataUrl(svgString, svgWidth, svgHeight);
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = "best-times-graph.png";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch {
+      alert("PNG export failed.");
+    }
+  } else if (format === "pdf") {
+    try {
+      const dataUrl = await svgToPngDataUrl(svgString, svgWidth, svgHeight);
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert("jsPDF not loaded – PDF export unavailable.");
+        return;
+      }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "pt",
+        format: [svgWidth, svgHeight]
+      });
+      doc.addImage(dataUrl, "PNG", 0, 0, svgWidth, svgHeight);
+      doc.save("best-times-graph.pdf");
+    } catch {
+      alert("PDF export failed.");
+    }
+  }
 };
 </script>
 </body>
