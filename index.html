@@ -2420,5 +2420,713 @@ document.getElementById("downloadBtn").onclick = async () => {
   setActiveTool("select");
   refreshLayersPanel();
 </script>
+
+  <script>
+  // -----------------------------
+  // Basic modal handling
+  // -----------------------------
+  const openEditorBtn = document.getElementById('openEditorBtn');
+  const editorBackdrop = document.getElementById('editorBackdrop');
+  const closeEditorBtn = document.getElementById('closeEditorBtn');
+
+  openEditorBtn.addEventListener('click', () => {
+    editorBackdrop.classList.remove('hidden');
+  });
+
+  closeEditorBtn.addEventListener('click', () => {
+    editorBackdrop.classList.add('hidden');
+  });
+
+  // -----------------------------
+  // Fabric canvas setup
+  // -----------------------------
+  const canvasEl = document.getElementById('editorCanvas');
+  const sizePresetSelect = document.getElementById('sizePresetSelect');
+  const zoomLabel = document.getElementById('zoomLabel');
+  const selectedLabel = document.getElementById('selectedLabel');
+
+  let canvas = new fabric.Canvas(canvasEl, {
+    backgroundColor: '#020617',
+    selection: true,
+    preserveObjectStacking: true
+  });
+
+  function resizeCanvasFromPreset() {
+    const [w, h] = sizePresetSelect.value.split('x').map(Number);
+    const maxWidth = 900;
+    const maxHeight = 520;
+    let scale = Math.min(maxWidth / w, maxHeight / h, 1);
+
+    canvas.setWidth(w * scale);
+    canvas.setHeight(h * scale);
+    canvas.setZoom(scale);
+    zoomLabel.textContent = Math.round(scale * 100) + '%';
+    canvas.renderAll();
+    saveHistory(); // store initial state
+  }
+
+  sizePresetSelect.addEventListener('change', resizeCanvasFromPreset);
+  resizeCanvasFromPreset();
+
+  // -----------------------------
+  // Tools
+  // -----------------------------
+  let activeTool = 'select';
+  let isDrawingShape = false;
+  let startX = 0;
+  let startY = 0;
+  let tempShape = null;
+  let penPoints = [];
+
+  const toolButtons = document.querySelectorAll('.tool-btn');
+
+  function setTool(tool) {
+    activeTool = tool;
+    toolButtons.forEach(b => {
+      const t = b.getAttribute('data-tool');
+      b.classList.toggle('active', t === tool);
+    });
+    canvas.isDrawingMode = false;
+    isDrawingShape = false;
+    penPoints = [];
+    if (tempShape) {
+      canvas.remove(tempShape);
+      tempShape = null;
+    }
+  }
+
+  toolButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tool = btn.getAttribute('data-tool');
+      if (!tool) return;
+      setTool(tool);
+    });
+  });
+
+  // Utility: create shapes
+  function addRect(x, y) {
+    const rect = new fabric.Rect({
+      left: x, top: y,
+      width: 120, height: 80,
+      fill: fillColorInput.value,
+      stroke: strokeColorInput.value,
+      strokeWidth: parseFloat(strokeWidthInput.value) || 1,
+      rx: 8, ry: 8
+    });
+    canvas.add(rect);
+    canvas.setActiveObject(rect);
+    saveHistory();
+  }
+
+  function addEllipse(x, y) {
+    const el = new fabric.Ellipse({
+      left: x, top: y,
+      rx: 60, ry: 40,
+      fill: fillColorInput.value,
+      stroke: strokeColorInput.value,
+      strokeWidth: parseFloat(strokeWidthInput.value) || 1
+    });
+    canvas.add(el);
+    canvas.setActiveObject(el);
+    saveHistory();
+  }
+
+  function addLine(x, y) {
+    const ln = new fabric.Line([x, y, x + 120, y], {
+      stroke: strokeColorInput.value,
+      strokeWidth: parseFloat(strokeWidthInput.value) || 2
+    });
+    canvas.add(ln);
+    canvas.setActiveObject(ln);
+    saveHistory();
+  }
+
+  function addArrow(x, y) {
+    const line = new fabric.Line([x, y, x + 120, y], {
+      stroke: strokeColorInput.value,
+      strokeWidth: parseFloat(strokeWidthInput.value) || 2
+    });
+    const tri = new fabric.Triangle({
+      left: x + 120,
+      top: y - 5,
+      width: 12,
+      height: 12,
+      fill: strokeColorInput.value,
+      angle: 90
+    });
+    const group = new fabric.Group([line, tri], {
+      left: x, top: y - 1
+    });
+    canvas.add(group);
+    canvas.setActiveObject(group);
+    saveHistory();
+  }
+
+  function addPolygon(x, y) {
+    const points = [
+      { x: 0, y: 20 },
+      { x: 40, y: 0 },
+      { x: 80, y: 20 },
+      { x: 80, y: 60 },
+      { x: 0, y: 60 }
+    ];
+    const poly = new fabric.Polygon(points, {
+      left: x, top: y,
+      fill: fillColorInput.value,
+      stroke: strokeColorInput.value,
+      strokeWidth: parseFloat(strokeWidthInput.value) || 1
+    });
+    canvas.add(poly);
+    canvas.setActiveObject(poly);
+    saveHistory();
+  }
+
+  function addStar(x, y) {
+    const points = [];
+    const outerRadius = 40;
+    const innerRadius = 18;
+    const numPoints = 5;
+    for (let i = 0; i < numPoints * 2; i++) {
+      const angle = (Math.PI * i) / numPoints;
+      const r = i % 2 === 0 ? outerRadius : innerRadius;
+      points.push({
+        x: Math.cos(angle) * r,
+        y: Math.sin(angle) * r
+      });
+    }
+    const star = new fabric.Polygon(points, {
+      left: x, top: y,
+      fill: fillColorInput.value,
+      stroke: strokeColorInput.value,
+      strokeWidth: parseFloat(strokeWidthInput.value) || 1
+    });
+    canvas.add(star);
+    canvas.setActiveObject(star);
+    saveHistory();
+  }
+
+  function addText(x, y) {
+    const text = new fabric.Textbox('Your caption here', {
+      left: x,
+      top: y,
+      fontSize: parseFloat(fontSizeInput.value) || 24,
+      fontFamily: fontFamilyInput.value,
+      fill: fillColorInput.value
+    });
+    canvas.add(text);
+    canvas.setActiveObject(text);
+    saveHistory();
+  }
+
+  // Mouse handling – drawing tools
+  canvas.on('mouse:down', (opt) => {
+    const pointer = canvas.getPointer(opt.e);
+    startX = pointer.x;
+    startY = pointer.y;
+
+    if (isSpacePressed) {
+      isPanning = true;
+      lastPosX = opt.e.clientX;
+      lastPosY = opt.e.clientY;
+      return;
+    }
+
+    if (activeTool === 'rect') {
+      isDrawingShape = true;
+      tempShape = new fabric.Rect({
+        left: startX,
+        top: startY,
+        width: 1,
+        height: 1,
+        fill: fillColorInput.value,
+        stroke: strokeColorInput.value,
+        strokeWidth: parseFloat(strokeWidthInput.value) || 1,
+        rx: 4, ry: 4,
+        selectable: false
+      });
+      canvas.add(tempShape);
+    } else if (activeTool === 'ellipse') {
+      isDrawingShape = true;
+      tempShape = new fabric.Ellipse({
+        left: startX,
+        top: startY,
+        rx: 1,
+        ry: 1,
+        fill: fillColorInput.value,
+        stroke: strokeColorInput.value,
+        strokeWidth: parseFloat(strokeWidthInput.value) || 1,
+        selectable: false
+      });
+      canvas.add(tempShape);
+    } else if (activeTool === 'line') {
+      isDrawingShape = true;
+      tempShape = new fabric.Line([startX, startY, startX, startY], {
+        stroke: strokeColorInput.value,
+        strokeWidth: parseFloat(strokeWidthInput.value) || 2,
+        selectable: false
+      });
+      canvas.add(tempShape);
+    } else if (activeTool === 'arrow') {
+      addArrow(startX, startY);
+    } else if (activeTool === 'polygon') {
+      addPolygon(startX, startY);
+    } else if (activeTool === 'star') {
+      addStar(startX - 40, startY - 40);
+    } else if (activeTool === 'text') {
+      addText(startX, startY);
+    } else if (activeTool === 'pen') {
+      penPoints.push({ x: pointer.x, y: pointer.y });
+      if (penPoints.length > 1) {
+        if (tempShape) canvas.remove(tempShape);
+        tempShape = new fabric.Polyline(penPoints, {
+          fill: '',
+          stroke: strokeColorInput.value,
+          strokeWidth: parseFloat(strokeWidthInput.value) || 2,
+          selectable: false
+        });
+        canvas.add(tempShape);
+      }
+    }
+  });
+
+  canvas.on('mouse:move', (opt) => {
+    if (isPanning) {
+      const e = opt.e;
+      const vpt = canvas.viewportTransform;
+      vpt[4] += e.clientX - lastPosX;
+      vpt[5] += e.clientY - lastPosY;
+      canvas.requestRenderAll();
+      lastPosX = e.clientX;
+      lastPosY = e.clientY;
+      return;
+    }
+
+    if (!isDrawingShape || !tempShape || activeTool === 'pen') return;
+    const pointer = canvas.getPointer(opt.e);
+    const w = pointer.x - startX;
+    const h = pointer.y - startY;
+
+    if (tempShape.type === 'rect') {
+      tempShape.set({
+        width: Math.abs(w),
+        height: Math.abs(h),
+        left: w < 0 ? pointer.x : startX,
+        top: h < 0 ? pointer.y : startY
+      });
+    } else if (tempShape.type === 'ellipse') {
+      tempShape.set({
+        rx: Math.abs(w / 2),
+        ry: Math.abs(h / 2),
+        left: w < 0 ? pointer.x : startX,
+        top: h < 0 ? pointer.y : startY
+      });
+    } else if (tempShape.type === 'line') {
+      tempShape.set({
+        x2: pointer.x,
+        y2: pointer.y
+      });
+    }
+    canvas.renderAll();
+  });
+
+  canvas.on('mouse:up', () => {
+    if (isPanning) {
+      isPanning = false;
+      return;
+    }
+    if (isDrawingShape && tempShape) {
+      tempShape.set({ selectable: true });
+      canvas.setActiveObject(tempShape);
+      tempShape = null;
+      isDrawingShape = false;
+      saveHistory();
+    }
+    updateLayersPanel();
+  });
+
+  // Finish pen path on Enter / double click
+  window.addEventListener('keydown', (e) => {
+    if (activeTool === 'pen' && (e.key === 'Enter' || e.key === 'Escape')) {
+      finalizePenPath();
+    }
+  });
+
+  canvas.on('mouse:dblclick', () => {
+    if (activeTool === 'pen') finalizePenPath();
+  });
+
+  function finalizePenPath() {
+    if (penPoints.length > 1) {
+      if (tempShape) canvas.remove(tempShape);
+      const path = new fabric.Polyline(penPoints, {
+        fill: '',
+        stroke: strokeColorInput.value,
+        strokeWidth: parseFloat(strokeWidthInput.value) || 2
+      });
+      canvas.add(path);
+      canvas.setActiveObject(path);
+      penPoints = [];
+      tempShape = null;
+      saveHistory();
+      updateLayersPanel();
+    }
+  }
+
+  // -----------------------------
+  // Object selection & properties
+  // -----------------------------
+  const fillColorInput = document.getElementById('fillColorInput');
+  const strokeColorInput = document.getElementById('strokeColorInput');
+  const strokeWidthInput = document.getElementById('strokeWidthInput');
+  const opacityInput = document.getElementById('opacityInput');
+  const fontFamilyInput = document.getElementById('fontFamilyInput');
+  const fontSizeInput = document.getElementById('fontSizeInput');
+
+  function syncUIWithObject(obj) {
+    if (!obj) {
+      selectedLabel.textContent = 'None';
+      return;
+    }
+    selectedLabel.textContent = obj.type || 'Object';
+
+    if ('fill' in obj && obj.fill) {
+      try {
+        fillColorInput.value = new fabric.Color(obj.fill).toHex();
+      } catch {}
+    }
+    if ('stroke' in obj && obj.stroke) {
+      try {
+        strokeColorInput.value = new fabric.Color(obj.stroke).toHex();
+      } catch {}
+    }
+    if ('strokeWidth' in obj) strokeWidthInput.value = obj.strokeWidth || 1;
+    if ('opacity' in obj) opacityInput.value = obj.opacity ?? 1;
+
+    if (obj.type === 'textbox' || obj.type === 'text') {
+      fontFamilyInput.value = obj.fontFamily || 'Inter';
+      fontSizeInput.value = obj.fontSize || 24;
+    }
+  }
+
+  canvas.on('selection:created', e => {
+    syncUIWithObject(e.selected[0]);
+    updateLayersPanel();
+  });
+  canvas.on('selection:updated', e => {
+    syncUIWithObject(e.selected[0]);
+    updateLayersPanel();
+  });
+  canvas.on('selection:cleared', () => {
+    syncUIWithObject(null);
+    updateLayersPanel();
+  });
+
+  function applyPropsToActive() {
+    const obj = canvas.getActiveObject();
+    if (!obj) return;
+    if ('fill' in obj) obj.set('fill', fillColorInput.value);
+    if ('stroke' in obj) obj.set('stroke', strokeColorInput.value);
+    if ('strokeWidth' in obj) obj.set('strokeWidth', parseFloat(strokeWidthInput.value) || 1);
+    if ('opacity' in obj) obj.set('opacity', parseFloat(opacityInput.value) || 1);
+
+    if (obj.type === 'textbox' || obj.type === 'text') {
+      obj.set('fontFamily', fontFamilyInput.value);
+      obj.set('fontSize', parseFloat(fontSizeInput.value) || 24);
+    }
+    canvas.renderAll();
+    saveHistory();
+    updateLayersPanel();
+  }
+
+  fillColorInput.addEventListener('input', applyPropsToActive);
+  strokeColorInput.addEventListener('input', applyPropsToActive);
+  strokeWidthInput.addEventListener('change', applyPropsToActive);
+  opacityInput.addEventListener('change', applyPropsToActive);
+  fontFamilyInput.addEventListener('change', applyPropsToActive);
+  fontSizeInput.addEventListener('change', applyPropsToActive);
+
+  // -----------------------------
+  // Layers
+  // -----------------------------
+  const layersList = document.getElementById('layersList');
+
+  function updateLayersPanel() {
+    const objs = canvas.getObjects();
+    layersList.innerHTML = '';
+    objs.slice().reverse().forEach((obj, indexFromTop) => {
+      const item = document.createElement('div');
+      item.className = 'layer-item';
+      if (obj === canvas.getActiveObject()) item.classList.add('active');
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'name';
+      nameSpan.textContent = obj.type || 'Layer';
+
+      const eyeSpan = document.createElement('span');
+      eyeSpan.className = 'eye';
+      eyeSpan.textContent = obj.visible ? '👁' : '🚫';
+
+      eyeSpan.addEventListener('click', (e) => {
+        e.stopPropagation();
+        obj.visible = !obj.visible;
+        canvas.renderAll();
+        saveHistory();
+        updateLayersPanel();
+      });
+
+      item.appendChild(nameSpan);
+      item.appendChild(eyeSpan);
+
+      item.addEventListener('click', () => {
+        canvas.setActiveObject(obj);
+        canvas.renderAll();
+        syncUIWithObject(obj);
+        updateLayersPanel();
+      });
+
+      layersList.appendChild(item);
+    });
+  }
+
+  canvas.on('object:added', () => { updateLayersPanel(); });
+  canvas.on('object:removed', () => { updateLayersPanel(); });
+  canvas.on('object:modified', () => { updateLayersPanel(); saveHistory(); });
+
+  // -----------------------------
+  // Upload
+  // -----------------------------
+  const fileUpload = document.getElementById('fileUpload');
+
+  fileUpload.addEventListener('change', (e) => {
+    const files = Array.from(e.target.files || []);
+    files.forEach(file => {
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (['png', 'jpg', 'jpeg'].includes(ext)) {
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          fabric.Image.fromURL(ev.target.result, (img) => {
+            img.set({
+              left: 50,
+              top: 50,
+              scaleX: 0.5,
+              scaleY: 0.5
+            });
+            canvas.add(img);
+            canvas.setActiveObject(img);
+            canvas.renderAll();
+            saveHistory();
+          });
+        };
+        reader.readAsDataURL(file);
+      } else if (ext === 'svg') {
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          fabric.loadSVGFromString(ev.target.result, (objects, options) => {
+            const svg = fabric.util.groupSVGElements(objects, options);
+            svg.set({ left: 80, top: 80, scaleX: 0.8, scaleY: 0.8 });
+            canvas.add(svg);
+            canvas.setActiveObject(svg);
+            canvas.renderAll();
+            saveHistory();
+          });
+        };
+        reader.readAsText(file);
+      } else {
+        console.log('Uploaded non-rendered file:', file.name);
+      }
+    });
+    fileUpload.value = '';
+  });
+
+  // -----------------------------
+  // Download PNG
+  // -----------------------------
+  const downloadBtn = document.getElementById('downloadBtn');
+  const fileNameInput = document.getElementById('fileNameInput');
+
+  downloadBtn.addEventListener('click', () => {
+    const dataURL = canvas.toDataURL({
+      format: 'png',
+      multiplier: 1
+    });
+    const link = document.createElement('a');
+    link.href = dataURL;
+    const safeName = (fileNameInput.value || 'social-post').replace(/[^\w\-]+/g, '_');
+    link.download = safeName + '.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  });
+
+  // -----------------------------
+  // Clear canvas
+  // -----------------------------
+  const clearCanvasBtn = document.getElementById('clearCanvasBtn');
+  clearCanvasBtn.addEventListener('click', () => {
+    if (confirm('Clear canvas? This cannot be undone.')) {
+      canvas.clear();
+      canvas.setBackgroundColor('#020617', canvas.renderAll.bind(canvas));
+      saveHistory();
+      updateLayersPanel();
+    }
+  });
+
+  // -----------------------------
+  // Zoom (mouse wheel) + Pan (Space + drag)
+  // -----------------------------
+  let isSpacePressed = false;
+  let isPanning = false;
+  let lastPosX = 0;
+  let lastPosY = 0;
+
+  canvas.on('mouse:wheel', function(opt) {
+    let delta = opt.e.deltaY;
+    let zoom = canvas.getZoom();
+    zoom *= 0.999 ** delta;
+    if (zoom > 3) zoom = 3;
+    if (zoom < 0.2) zoom = 0.2;
+    const point = new fabric.Point(opt.e.offsetX, opt.e.offsetY);
+    canvas.zoomToPoint(point, zoom);
+    zoomLabel.textContent = Math.round(zoom * 100) + '%';
+    opt.e.preventDefault();
+    opt.e.stopPropagation();
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+      isSpacePressed = true;
+      canvas.defaultCursor = 'grab';
+    }
+  });
+
+  window.addEventListener('keyup', (e) => {
+    if (e.code === 'Space') {
+      isSpacePressed = false;
+      canvas.defaultCursor = 'default';
+      isPanning = false;
+    }
+  });
+
+  // -----------------------------
+  // Keyboard shortcuts
+  // -----------------------------
+  let clipboardObject = null;
+
+  window.addEventListener('keydown', (e) => {
+    const key = e.key.toLowerCase();
+
+    // Tool shortcuts (only if not using Ctrl/Cmd)
+    if (!e.ctrlKey && !e.metaKey) {
+      if (key === 'v') setTool('select');
+      if (key === 'p') setTool('pen');
+      if (key === 'r') setTool('rect');
+      if (key === 'o') setTool('ellipse');
+      if (key === 'l') setTool('line');
+      if (key === 't') setTool('text');
+    }
+
+    // Delete
+    if (key === 'delete' || key === 'backspace') {
+      const active = canvas.getActiveObject();
+      if (active) {
+        canvas.remove(active);
+        canvas.discardActiveObject();
+        canvas.requestRenderAll();
+        saveHistory();
+        updateLayersPanel();
+        e.preventDefault();
+      }
+    }
+
+    // Undo / Redo / Copy / Paste
+    if (e.ctrlKey || e.metaKey) {
+      if (key === 'z') {
+        e.preventDefault();
+        undo();
+      } else if (key === 'y') {
+        e.preventDefault();
+        redo();
+      } else if (key === 'c') {
+        e.preventDefault();
+        copyObject();
+      } else if (key === 'v') {
+        e.preventDefault();
+        pasteObject();
+      }
+    }
+  });
+
+  function copyObject() {
+    const active = canvas.getActiveObject();
+    if (!active) return;
+    active.clone(clone => {
+      clipboardObject = clone;
+    });
+  }
+
+  function pasteObject() {
+    if (!clipboardObject) return;
+    clipboardObject.clone(clonedObj => {
+      canvas.discardActiveObject();
+      clonedObj.set({
+        left: (clonedObj.left || 0) + 20,
+        top: (clonedObj.top || 0) + 20,
+        evented: true
+      });
+      if (clonedObj.type === 'activeSelection') {
+        clonedObj.canvas = canvas;
+        clonedObj.forEachObject(o => canvas.add(o));
+        clonedObj.setCoords();
+      } else {
+        canvas.add(clonedObj);
+      }
+      canvas.setActiveObject(clonedObj);
+      canvas.requestRenderAll();
+      saveHistory();
+    });
+  }
+
+  // -----------------------------
+  // Undo / Redo (history)
+  // -----------------------------
+  let history = [];
+  let historyIndex = -1;
+  let isRestoringHistory = false;
+
+  function saveHistory() {
+    if (isRestoringHistory) return;
+    const json = JSON.stringify(canvas.toJSON());
+    if (history[historyIndex] === json) return;
+    history = history.slice(0, historyIndex + 1);
+    history.push(json);
+    historyIndex = history.length - 1;
+  }
+
+  function loadHistory(idx) {
+    if (idx < 0 || idx >= history.length) return;
+    isRestoringHistory = true;
+    canvas.loadFromJSON(history[idx], () => {
+      canvas.renderAll();
+      updateLayersPanel();
+      isRestoringHistory = false;
+    });
+  }
+
+  function undo() {
+    if (historyIndex <= 0) return;
+    historyIndex -= 1;
+    loadHistory(historyIndex);
+  }
+
+  function redo() {
+    if (historyIndex >= history.length - 1) return;
+    historyIndex += 1;
+    loadHistory(historyIndex);
+  }
+
+  // Initial history snapshot
+  saveHistory();
+</script>
+
 </body>
 </html>
