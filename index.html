@@ -327,20 +327,20 @@
       <div class="social-select">
         <span>or Select Social:</span>
         <select id="socialSelect">
-          <option value="">Custom</option>
-          <option value="#1877F2">Facebook</option>
-          <option value="#FF2C5D">Instagram</option>
-          <option value="#000000">Twitter / X</option>
-          <option value="#0A66C2">LinkedIn</option>
-          <option value="#FF0000">YouTube</option>
-          <option value="#FE2C55">TikTok</option>
-          <option value="#BD081C">Pinterest</option>
-          <option value="#FFFC00">Snapchat</option>
-          <option value="#FF4500">Reddit</option>
-          <option value="#35465C">Tumblr</option>
-          <option value="#000000">Threads</option>
-          <option value="#1185FE">Bluesky</option>
-          <option value="#4285F4">Google</option>
+          <option value="" data-name="">Custom</option>
+          <option value="#1877F2" data-name="Facebook">Facebook</option>
+          <option value="#FF2C5D" data-name="Instagram">Instagram</option>
+          <option value="#000000" data-name="Twitter / X">Twitter / X</option>
+          <option value="#0A66C2" data-name="LinkedIn">LinkedIn</option>
+          <option value="#FF0000" data-name="YouTube">YouTube</option>
+          <option value="#FE2C55" data-name="TikTok">TikTok</option>
+          <option value="#BD081C" data-name="Pinterest">Pinterest</option>
+          <option value="#FFFC00" data-name="Snapchat">Snapchat</option>
+          <option value="#FF4500" data-name="Reddit">Reddit</option>
+          <option value="#35465C" data-name="Tumblr">Tumblr</option>
+          <option value="#000000" data-name="Threads">Threads</option>
+          <option value="#1185FE" data-name="Bluesky">Bluesky</option>
+          <option value="#4285F4" data-name="Google">Google</option>
         </select>
       </div>
     </div>
@@ -354,7 +354,8 @@
   <div class="card">
     <div class="card-header">
       <div>
-        <h1>Best Times to Post on</h1>
+        <!-- Dynamic title -->
+        <h1 id="resultTitle">Best Times to Post</h1>
       </div>
 
       <div class="download-group">
@@ -423,7 +424,12 @@ const socialSelect       = document.getElementById("socialSelect");
 const dayInputsContainer = document.getElementById("dayInputs");
 const bestDaysPills      = document.getElementById("bestDaysPills");
 const worstDaysPills     = document.getElementById("worstDaysPills");
+const resultTitleEl      = document.getElementById("resultTitle");
 
+// will hold the current platform name ("" for custom)
+let currentPlatformName = "";
+
+// palette
 let palette = { low:"#ffe5ef", high:"#ff0050" };
 
 /* -------- Build inputs -------- */
@@ -461,6 +467,16 @@ function buildTable() {
 }
 buildTable();
 
+/* -------- Title helper -------- */
+function updateTitles(platformName) {
+  currentPlatformName = platformName || "";
+  if (currentPlatformName) {
+    resultTitleEl.textContent = `Best Times to Post on ${currentPlatformName}`;
+  } else {
+    resultTitleEl.textContent = "Best Times to Post";
+  }
+}
+
 /* -------- Color helpers -------- */
 function hexToRgb(hex) {
   hex = hex.replace("#","");
@@ -490,14 +506,21 @@ function updatePalette() {
 basePicker.addEventListener("input", updatePalette);
 updatePalette();
 
-/* social color selection */
+/* social color + title selection */
 socialSelect.addEventListener("change", () => {
   const val = socialSelect.value;
+  const opt = socialSelect.options[socialSelect.selectedIndex];
+  const platformName = opt.dataset.name || "";
+  updateTitles(platformName);
+
   if (val) {
     basePicker.value = val;
     updatePalette();
   }
 });
+
+// initial title (custom)
+updateTitles("");
 
 /* distance fade */
 function weight(d) {
@@ -611,14 +634,18 @@ function buildGraphSvg() {
   bg.setAttribute("fill","#ffffff");
   svg.appendChild(bg);
 
-  // title
+  // title (dynamic with platform)
   const title = document.createElementNS(svgNS,"text");
   title.setAttribute("x","60");
   title.setAttribute("y","70");
   title.setAttribute("font-size","26");
   title.setAttribute("font-weight","700");
   title.setAttribute("fill","#111827");
-  title.textContent = "Best Times to Post";
+  if (currentPlatformName) {
+    title.textContent = `Best Times to Post on ${currentPlatformName}`;
+  } else {
+    title.textContent = "Best Times to Post";
+  }
   svg.appendChild(title);
 
   // hour labels
@@ -659,7 +686,7 @@ function buildGraphSvg() {
       let fill = palette.low;
       if (domCell) {
         const style = getComputedStyle(domCell);
-        fill = style.backgroundColor || fill; // rgb(...) accepted in SVG
+        fill = style.backgroundColor || fill; // rgb(...) works in SVG
       }
       const rect = document.createElementNS(svgNS,"rect");
       rect.setAttribute("x", leftMargin + c*cellW);
