@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Best Time Heatmap</title>
+  <style>
+    :root {
+      --low-color:  #ffe7ee;
+      --mid-color:  #ffb3cd;
+      --high-color: #ff7aa9;
+    }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f5f5f7;
+      margin: 0;
+      padding: 24px;
+    }
+
+    .wrapper {
+      max-width: 1100px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 24px 28px 32px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+
+    h1 { margin: 0 0 6px; font-size: 22px; }
+    .sub { margin: 0 0 18px; font-size: 13px; color: #666; }
+
+    .top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .color-and-logo {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #444;
+    }
+
+    .color-block {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .color-block input[type="color"] {
+      width: 40px;
+      height: 24px;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      background: none;
+    }
+
+    .logo-upload {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+    }
+
+    .logo-upload input[type="file"] {
+      font-size: 10px;
+      max-width: 160px;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px 14px;
+      margin-bottom: 12px;
+    }
+
+    .controls label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+      color: #555;
+      display: block;
+    }
+
+    .controls input {
+      padding: 4px 6px;
+      font-size: 12px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      margin-top: 8px;
+      padding: 7px 16px;
+      border-radius: 999px;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      background: linear-gradient(135deg, #ff4b8b, #ff0050);
+      color: #fff;
+    }
+
+    table {
+      border-collapse: separate;
+      border-spacing: 1px;
+      width: 100%;
+      margin-top: 18px;
+      table-layout: fixed;
+      font-size: 11px;
+    }
+
+    th.day {
+      text-align: left;
+      font-weight: 600;
+      font-size: 12px;
+      padding-right: 4px;
+    }
+
+    th.hour {
+      font-weight: 500;
+      color: #777;
+      padding-bottom: 4px;
+    }
+
+    /* Heatmap boxes – no rounded corners */
+    .cell {
+      height: 20px;
+      background: var(--low-color);
+      transition: background 0.15s ease;
+    }
+
+    .legend {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      font-size: 11px;
+      color: #666;
+    }
+
+    .legend-strip {
+      flex: 1;
+      height: 10px;
+      background: linear-gradient(
+        to right,
+        var(--low-color),
+        var(--mid-color),
+        var(--high-color)
+      );
+    }
+
+    /* SM-post style result card */
+    .result-card {
+      margin-top: 24px;
+      max-width: 420px;
+      aspect-ratio: 1 / 1;
+      border-radius: 24px;
+      padding: 18px 18px 16px;
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      background: #ffffff;
+      color: #111;
+      box-shadow: 0 14px 30px rgba(0,0,0,0.16);
+      border: 1px solid #f1f1f1;
+    }
+
+    .result-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .brand-block {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #logoImage {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      object-fit: contain;
+      border: 1px solid #eee;
+      background: #fafafa;
+      display: none;
+    }
+
+    .brand-name {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .result-badge {
+      font-size: 10px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid #eee;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .result-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin-top: 10px;
+      margin-bottom: 4px;
+    }
+
+    .result-sub {
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .mini-heatmap-wrapper {
+      margin-top: 6px;
+      border-radius: 12px;
+      border: 1px solid #f0f0f0;
+      padding: 6px;
+      overflow: hidden;
+    }
+
+    .mini-heatmap {
+      width: 100%;
+      transform: scale(0.8);
+      transform-origin: top left;
+    }
+
+    .result-list {
+      margin: 6px 0 0;
+      padding: 0;
+      list-style: none;
+      font-size: 12px;
+      line-height: 1.5;
+      max-height: 80px;
+      overflow-y: auto;
+    }
+
+    .result-list li span.day {
+      font-weight: 600;
+      margin-right: 4px;
+    }
+
+    .result-footer {
+      font-size: 11px;
+      color: #444;
+      border-top: 1px solid #f0f0f0;
+      padding-top: 8px;
+      margin-top: 8px;
+    }
+
+    .best-worst {
+      margin-top: 4px;
+      font-size: 11px;
+      color: #222;
+    }
+
+    .best-worst strong {
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+
+    <div class="top-row">
+      <div>
+        <h1>Best Time to Post Heatmap</h1>
+        <p class="sub">Add best posting hours for each day (24-hour format, comma separated).</p>
+      </div>
+
+      <div class="color-and-logo">
+        <div class="color-block">
+          <span>Base Color</span>
+          <input type="color" id="basePicker" value="#ff4b8b">
+        </div>
+        <div class="logo-upload">
+          <span>Upload Logo:</span>
+          <input type="file" id="logoUpload" accept="image/*">
+        </div>
+      </div>
+    </div>
+
+    <div class="controls" id="day-inputs"></div>
+
+    <button id="generateBtn">Generate Heatmap & Post</button>
+
+    <!-- Main heatmap table -->
+    <table id="heatmap"></table>
+
+    <div class="legend">
+      <span>Lowest</span>
+      <div class="legend-strip"></div>
+      <span>Highest</span>
+    </div>
+
+    <!-- Social media post style card -->
+    <div id="resultCard" class="result-card">
+      <div>
+        <div class="result-top">
+          <div class="brand-block">
+            <img id="logoImage" alt="Logo preview" />
+            <span id="fallbackBrand" class="brand-name">Your Brand</span>
+          </div>
+          <div class="result-badge">Best Time</div>
+        </div>
+
+        <div class="result-title">Your Best Time to Post</div>
+        <div class="result-sub">Based on your manually selected slots for this week.</div>
+
+        <div class="mini-heatmap-wrapper">
+          <div id="miniHeatmapContainer"></div>
+        </div>
+
+        <ul class="result-list" id="resultList"></ul>
+      </div>
+
+      <div class="result-footer">
+        <div class="best-worst">
+          <div id="bestDayText"></div>
+          <div id="worstDayText"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const days  = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+    const hours = Array.from({length: 24}, (_,i)=>i);
+
+    const basePicker      = document.getElementById("basePicker");
+    const logoUpload      = document.getElementById("logoUpload");
+    const logoImage       = document.getElementById("logoImage");
+    const fallbackBrand   = document.getElementById("fallbackBrand");
+    const heatmapTable    = document.getElementById("heatmap");
+    const generateBtn     = document.getElementById("generateBtn");
+    const inputsContainer = document.getElementById("day-inputs");
+    const resultCard      = document.getElementById("resultCard");
+    const resultList      = document.getElementById("resultList");
+    const bestDayText     = document.getElementById("bestDayText");
+    const worstDayText    = document.getElementById("worstDayText");
+    const miniHeatmapContainer = document.getElementById("miniHeatmapContainer");
+    const legendStrip     = document.querySelector(".legend-strip");
+
+    // palette object used for shading
+    let palette = {
+      low: "#ffe7ee",
+      mid: "#ffb3cd",
+      high: "#ff7aa9"
+    };
+
+    // --- Logo upload preview ---
+    logoUpload.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        logoImage.src = ev.target.result;
+        logoImage.style.display = "block";
+        fallbackBrand.style.display = "none";
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // --- Color utilities ---
+    function hexToRgb(hex) {
+      hex = hex.replace("#","");
+      if (hex.length === 3) {
+        hex = hex.split("").map(c => c + c).join("");
+      }
+      const num = parseInt(hex,16);
+      return {
+        r: (num >> 16) & 255,
+        g: (num >> 8) & 255,
+        b: num & 255
+      };
+    }
+
+    function rgbToHex(r,g,b) {
+      return "#" +
+        [r,g,b].map(v => {
+          const h = v.toString(16);
+          return h.length === 1 ? "0" + h : h;
+        }).join("");
+    }
+
+    function mixColors(hex1, hex2, weight) {
+      const c1 = hexToRgb(hex1);
+      const c2 = hexToRgb(hex2);
+      const w1 = 1 - weight;
+      const r = Math.round(c1.r * w1 + c2.r * weight);
+      const g = Math.round(c1.g * w1 + c2.g * weight);
+      const b = Math.round(c1.b * w1 + c2.b * weight);
+      return rgbToHex(r,g,b);
+    }
+
+    function applyPaletteFromBase() {
+      const base = basePicker.value;
+
+      // Pastel tones only (no dark mix)
+      const low  = mixColors(base, "#ffffff", 0.90); // very light
+      const mid  = mixColors(base, "#ffffff", 0.55); // soft
+      const high = mixColors(base, "#ffffff", 0.30); // still pastel, but stronger
+
+      palette = { low, mid, high };
+
+      document.documentElement.style.setProperty("--low-color",  low);
+      document.documentElement.style.setProperty("--mid-color",  mid);
+      document.documentElement.style.setProperty("--high-color", high);
+
+      legendStrip.style.background =
+        `linear-gradient(to right, ${low}, ${mid}, ${high})`;
+    }
+
+    basePicker.addEventListener("input", applyPaletteFromBase);
+    applyPaletteFromBase();
+
+    // Build inputs
+    days.forEach(day=>{
+      const wrap = document.createElement("div");
+      wrap.innerHTML = `
+        <label>${day}</label>
+        <input id="input-${day}" placeholder="e.g. 9,10,11,14"/>
+      `;
+      inputsContainer.appendChild(wrap);
+    });
+
+    // Build heatmap table
+    function buildTable(){
+      heatmapTable.innerHTML = "";
+      const headerRow = document.createElement("tr");
+      headerRow.innerHTML = `<th></th>` +
+        hours.map(h=>`<th class="hour">${h}</th>`).join("");
+      heatmapTable.appendChild(headerRow);
+
+      days.forEach(day=>{
+        const row = document.createElement("tr");
+        row.innerHTML = `<th class="day">${day}</th>`;
+        hours.forEach(h=>{
+          const td = document.createElement("td");
+          td.className = "cell";
+          td.dataset.day  = day;
+          td.dataset.hour = h;
+          row.appendChild(td);
+        });
+        heatmapTable.appendChild(row);
+      });
+    }
+
+    buildTable();
+
+    // Distance-based weight: strong at selected hours, fades up to 4 hours away
+    function distanceWeight(d) {
+      const maxDist = 4; // how far fade goes
+      if (d > maxDist) return 0;
+      return 1 - d / maxDist; // linear fade: 1 -> 0
+    }
+
+    function generateHeatmapAndPost(){
+      const cellScores = {}; // "day-hour" -> score
+      const dayScores  = {};
+      days.forEach(d => { dayScores[d] = 0; });
+
+      resultList.innerHTML = "";
+      let hasAny = false;
+
+      // Collect scores based on manual hours
+      days.forEach(day => {
+        const val = document.getElementById(`input-${day}`).value;
+        if (!val.trim()) return;
+
+        const times = val.split(",")
+          .map(t => t.trim())
+          .filter(Boolean)
+          .map(t => parseInt(t,10))
+          .filter(t => !isNaN(t) && t>=0 && t<=23);
+
+        if (times.length === 0) return;
+
+        hasAny = true;
+        dayScores[day] = times.length;
+
+        // score each hour for this day
+        hours.forEach(h => {
+          let score = cellScores[`${day}-${h}`] || 0;
+          times.forEach(sel => {
+            const d = Math.abs(sel - h);
+            score += distanceWeight(d);
+          });
+          cellScores[`${day}-${h}`] = score;
+        });
+
+        // add to list in card
+        const li = document.createElement("li");
+        li.innerHTML = `<span class="day">${day}:</span> ${times.join(", ")} hrs`;
+        resultList.appendChild(li);
+      });
+
+      if (!hasAny) {
+        // reset colors if nothing selected
+        document.querySelectorAll(".cell").forEach(c => {
+          c.style.background = palette.low;
+        });
+        resultCard.style.display = "none";
+        bestDayText.textContent  = "";
+        worstDayText.textContent = "";
+        miniHeatmapContainer.innerHTML = "";
+        return;
+      }
+
+      // normalize scores
+      let maxScore = 0;
+      Object.values(cellScores).forEach(s => {
+        if (s > maxScore) maxScore = s;
+      });
+      if (maxScore === 0) maxScore = 1;
+
+      // apply smooth pastel gradient to each cell
+      document.querySelectorAll(".cell").forEach(c => {
+        const day = c.dataset.day;
+        const hour = parseInt(c.dataset.hour, 10);
+        const key = `${day}-${hour}`;
+        const rawScore = cellScores[key] || 0;
+
+        if (rawScore === 0) {
+          c.style.background = palette.low;
+        } else {
+          let t = rawScore / maxScore;   // 0..1
+          t = 0.15 + t * 0.85;           // keep away from ultra-light
+          const shade = mixColors(palette.low, palette.high, t);
+          c.style.background = shade;
+        }
+      });
+
+      // Clone heatmap into mini version
+      miniHeatmapContainer.innerHTML = "";
+      const mini = heatmapTable.cloneNode(true);
+      mini.classList.add("mini-heatmap");
+      miniHeatmapContainer.appendChild(mini);
+
+      // best / worst day
+      const scoresArray = Object.values(dayScores);
+      const maxDayScore = Math.max(...scoresArray);
+      const minDayScore = Math.min(...scoresArray);
+
+      const bestDays = days.filter(d => dayScores[d] === maxDayScore && maxDayScore > 0);
+      const worstDays = days.filter(d => dayScores[d] === minDayScore);
+
+      if (bestDays.length > 0) {
+        bestDayText.innerHTML = `<strong>Best day:</strong> ${bestDays.join(", ")}`;
+      } else {
+        bestDayText.textContent = "";
+      }
+
+      worstDayText.innerHTML = `<strong>Worst day:</strong> ${worstDays.join(", ")}`;
+
+      resultCard.style.display = "flex";
+    }
+
+    generateBtn.addEventListener("click", generateHeatmapAndPost);
+  </script>
+</body>
+</html>
